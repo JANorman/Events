@@ -5,7 +5,6 @@ WORKDIR /go/src/app
 
 RUN go get github.com/beego/bee
 
-RUN go build app.go
-
+RUN bee pack
 
 CMD ./app

@@ -1,0 +1,13 @@
+publish_service:
+  build: ./PublishService
+  ports:
+    - "8080"
+  links:
+    - rabbitmq:rabbit
+rabbitmq:
+  image: "rabbitmq"
+  ports:
+    - "4369"
+    - "5672"
+    - "15672"
+    - "25672"

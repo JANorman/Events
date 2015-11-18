@@ -2,25 +2,84 @@ package controllers
 
 import (
 	"github.com/astaxie/beego"
-	"fmt"
+	"github.com/streadway/amqp"
+	"log"
+	"time"
 )
 
 type EventController struct {
 	beego.Controller
 }
 
-type TransactionReport struct {
-  success bool
-  name string
+type TransactionSuccessReport struct {
+  Published bool `json:"published"`
+  PublishedAt time.Time `json:"published_at"`
 }
 
-func (r TransactionReport) Name() string {
-    return r.name
+type TransactionFailureReport struct {
+  Published bool   `json:"published"`
+  Message   string `json:"message"`
 }
 
-func (c *EventController) Get() {
-	report := TransactionReport{success: true, name: "Bob"}
-    fmt.Println(report)
-    c.Data["json"] = &report
-    c.ServeJson()
+var queueName string = "events"
+
+func ConnectToRabbitMq() (*amqp.Channel, error) {
+    // Connects opens an AMQP connection from the credentials in the URL.
+    conn, err := amqp.Dial("amqp://guest:guest@172.17.8.101:32778/")
+
+
+    if err != nil {
+        log.Fatalf("connection.open: %s", err)
+    }
+
+    defer conn.Close()
+
+    c, err := conn.Channel()
+    if err != nil {
+        log.Fatalf("channel.open: %s", err)
+    }
+
+    err = c.ExchangeDeclare(queueName, "topic", true, false, false, false, nil)
+    if err != nil {
+        log.Fatalf("exchange.declare: %v", err)
+    }
+
+    return c, err
+}
+
+func (controller *EventController) Post() {
+
+    c, err := ConnectToRabbitMq();
+
+    // TODO: Do something on error
+
+    timestamp := time.Now()
+    msg := amqp.Publishing{
+        DeliveryMode: amqp.Persistent,
+        Timestamp:    timestamp,
+        ContentType:  "text/plain",
+        Body:         []byte("Go Go AMQP!"),
+    }
+
+    // This is not a mandatory delivery, so it will be dropped if there are no
+    // queues bound to the logs exchange.
+    err = c.Publish(queueName, "info", true, false, msg)
+    if err != nil {
+        // Since publish is asynchronous this can happen if the network connection
+        // is reset or if the server has run out of resources.
+        log.Fatalf("basic.publish: %v", err)
+
+    }
+    report := TransactionSuccessReport{Published: false, PublishedAt: time.Time{}}
+    RespondWithReport(controller, report)
+    return
+	//report := TransactionReport{Published: true, PublishedAt: timestamp}
+    //RespondWithReport(controller, report)
+}
+
+
+
+func RespondWithReport(controller *EventController, report TransactionSuccessReport) {
+    controller.Data["json"] = &report
+    controller.ServeJson()
 }
