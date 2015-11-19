@@ -4,8 +4,11 @@ publish_service:
     - "8080"
   links:
     - rabbitmq:rabbit
+  volumes:
+    - "./PublishService:/go/src/app"
+  command: "bash -c 'while true; do sleep 2; done'"
 rabbitmq:
-  image: "rabbitmq"
+  image: "rabbitmq:3.5-management"
   ports:
     - "4369"
     - "5672"

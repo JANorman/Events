@@ -5,6 +5,7 @@ import (
 	"github.com/streadway/amqp"
 	"log"
 	"time"
+	"app/conf"
 )
 
 type EventController struct {
@@ -25,8 +26,7 @@ var queueName string = "events"
 
 func ConnectToRabbitMq() (*amqp.Channel, error) {
     // Connects opens an AMQP connection from the credentials in the URL.
-    conn, err := amqp.Dial("amqp://guest:guest@172.17.8.101:32778/")
-
+    conn, err := amqp.Dial(conf.GetRabbitMqDsn())
 
     if err != nil {
         log.Fatalf("connection.open: %s", err)

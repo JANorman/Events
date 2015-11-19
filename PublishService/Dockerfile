@@ -7,4 +7,4 @@ RUN go get github.com/beego/bee
 
 RUN bee pack
 
-CMD ./app
+CMD bee run
